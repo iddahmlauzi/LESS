@@ -48,6 +48,12 @@ fsdp_config = {
         "limit_all_gathers": "true",
         "use_orig_params": "true",
     },
+    "gemma2_2b_finetune": {  # Added configuration for Gemma2-2B
+        "fsdp_transformer_layer_cls_to_wrap": ["GemmaDecoderLayer"],
+        "fsdp_backward_prefetch": "backward_pre",
+        "limit_all_gathers": "true",
+        "use_orig_params": "true",
+    },
 }
 
 

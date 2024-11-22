@@ -23,7 +23,7 @@ argparser.add_argument('--output_path', type=str, default="selected_data",
 
 args = argparser.parse_args()
 
-N_SUBTASKS = {"mmlu": 57, "bbh": 27, "tydiqa": 9}
+N_SUBTASKS = {"mmlu": 57, "bbh": 27, "tydiqa": 9, "humaneval": 1}
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -51,10 +51,10 @@ for target_task_name in args.target_task_names:
     for train_file_name in args.train_file_names:
         influence_score = 0
         for i, ckpt in enumerate(args.ckpts):
-            # validation_path = args.validation_gradient_path.format(
-            # target_task_name, ckpt)
             validation_path = args.validation_gradient_path.format(
-                ckpt, target_task_name)
+            target_task_name, ckpt)
+            # validation_path = args.validation_gradient_path.format(
+            #    ckpt, target_task_name)
             if os.path.isdir(validation_path):
                 validation_path = os.path.join(validation_path, "all_orig.pt")
             validation_info = torch.load(validation_path)
@@ -62,8 +62,8 @@ for target_task_name in args.target_task_names:
             if not torch.is_tensor(validation_info):
                 validation_info = torch.tensor(validation_info)
             validation_info = validation_info.to(device).float()
-            # gradient_path = args.gradient_path.format(train_file_name, ckpt)
-            gradient_path = args.gradient_path.format(ckpt, train_file_name)
+            gradient_path = args.gradient_path.format(train_file_name, ckpt)
+            # gradient_path = args.gradient_path.format(ckpt, train_file_name)
             if os.path.isdir(gradient_path):
                 gradient_path = os.path.join(gradient_path, "all_orig.pt")
             training_info = torch.load(gradient_path)

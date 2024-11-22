@@ -133,10 +133,7 @@ if args.task is not None:
     dataset = get_dataset(args.task,
                           data_dir=args.data_dir,
                           tokenizer=tokenizer,
-                          chat_format=args.chat_format,
-                          use_chat_format=args.use_chat_format,
-                          max_length=args.max_length,
-                          zh=args.zh)
+                          max_length=args.max_length)
     dataloader = get_dataloader(dataset, tokenizer=tokenizer)
 else:
     assert args.train_file is not None

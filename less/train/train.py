@@ -24,6 +24,8 @@ from less.train.training_arguments import TrainingArguments
 logger = logging.getLogger(__name__)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+HF_TOKEN = os.getenv('HF_TOKEN')
+
 
 def main():
     parser = HfArgumentParser(
@@ -64,9 +66,14 @@ def main():
     # Set seed before initializing model.
     set_seed(training_args.seed)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.model_name_or_path,
+        token=HF_TOKEN,
+        trust_remote_code=True)
+    
     # Load training dataset
-    train_dataset = get_training_dataset(data_args.train_files,
+    print("About to load the training dataset")
+    train_dataset = get_training_dataset(data_args.train_dataset,
                                          tokenizer=tokenizer,
                                          max_seq_length=data_args.max_seq_length,
                                          sample_percentage=data_args.percentage,
