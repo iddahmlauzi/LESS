@@ -143,11 +143,10 @@ SELECTED_DATA_OUTPUT_PATH="$HOME/selected_data"
 ```
 
 > **Note**  
+> - `CHECKPOINT_WEIGHTS` should match the learning rate used during the final steps of each checkpoint’s training.
 > - The learning rates for each checkpoint can be found in the file  
 >   `out/{JOB_NAME}/checkpoint-{CKPT}/trainer_state.json`.  
 >   Within this file, locate the step that corresponds to the checkpoint number (e.g., step 6 for checkpoint 6). You will see the learning rate listed there.  
-> - `CHECKPOINT_WEIGHTS` should match the learning rate used during the final steps of each checkpoint’s training.
-
 
 The influence score for each training data point will be saved in the `OUTPUT_PATH` directory. You can use the following script to select the top-k data points with the highest influence score. 
 
@@ -155,7 +154,6 @@ The influence score for each training data point will be saved in the `OUTPUT_PA
 python3 -m less.data_selection.write_selected_data \
 --target_task_names ${TARGET_TASK_NAMES} \
 --train_file_names ${TRAIN_FILE_NAMES} \
---train_files ../data/train/processed/dolly/dolly_data.jsonl ../data/train/processed/oasst1/oasst1_data.jsonl \
 --output_path $SELECTED_DATA_OUTPUT_PATH \
 --percentage 0.05
 ```
