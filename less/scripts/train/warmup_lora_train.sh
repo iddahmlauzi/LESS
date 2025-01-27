@@ -7,14 +7,13 @@ model_path=$2
 percentage=$3
 data_seed=$4
 job_name=$5
+train_dataset=$6
 
 echo $HOME
 output_dir="$HOME/out/${job_name}"
 if [[ ! -d $output_dir ]]; then
     mkdir -p $output_dir
 fi
-
-train_dataset="UDACA/Code-Mixed-Dataset"
 
 # use fsdp for large models
 if [[ $model_path == "meta-llama/Llama-2-13b-hf" ]]; then

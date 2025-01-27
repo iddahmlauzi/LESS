@@ -29,33 +29,51 @@ def get_training_dataset(dataset_name, tokenizer, max_seq_length, sample_percent
         raw_dataset, tokenizer, max_seq_length)
     return lm_datasets
 
-def load_raw_dataset(dataset_name: str, sample_size=None, sample_percentage=1.0, seed=0):
-    """ load raw dataset from Hugging Face Datasets """
+def load_raw_dataset(dataset_name: str, split: str = "train", sample_size=None, sample_percentage=1.0, seed=0):
+    """
+    Load a raw dataset from Hugging Face Datasets with optional sampling and seeding.
+    This function is versatile enough to work with most HF datasets.
     
-    # Load dataset from Hugging Face directly
-    features = Features({
-    "text": Value("string"),
-    "source": Value("string") 
-    })
-
-    # Load the dataset with the expected features (schema)
-    processed_dataset = load_dataset("UDACA/Code-Mixed-Dataset", split="train", features=features)
+    Args:
+        dataset_name (str): The name of the dataset to load from HF Datasets.
+        split (str): The dataset split to load (e.g., "train", "test", "validation").
+        sample_size (int, optional): Number of samples to load. Overrides sample_percentage if provided.
+        sample_percentage (float): Percentage of the dataset to sample. Ignored if sample_size is provided.
+        seed (int): Seed for reproducibility.
+        
+    Returns:
+        Dataset: The loaded and optionally sampled HF dataset.
+    """
+    
+    try:
+        # Attempt to load the dataset without schema enforcement
+        dataset = load_dataset(dataset_name, split=split)
+    except Exception as e:
+        print(f"Failed to load dataset '{dataset_name}' normally. Attempting schema enforcement. Error: {e}")
+        
+        # Example of dataset-specific schema enforcement (adjust this as needed)
+        if dataset_name == "UDACA/Code-Mixed-Dataset":
+            features = Features({
+                "text": Value("string"),
+                "source": Value("string")
+            })
+            dataset = load_dataset(dataset_name, split=split, features=features)
+        else:
+            raise ValueError(f"Could not load dataset '{dataset_name}'. Additional schema enforcement may be needed.")
     
     # Calculate sample size if not provided
     if sample_size is None:
-        sample_size = int(len(processed_dataset) * sample_percentage)
+        sample_size = int(len(dataset) * sample_percentage)
 
     # If no sampling is needed, return the full dataset
-    if sample_size == len(processed_dataset):
-        return processed_dataset  # no shuffle
+    if sample_size >= len(dataset):
+        return dataset  # no shuffle
 
     # Shuffle and sample the dataset with a fixed seed
     with temp_seed(seed):
-        index = np.random.permutation(len(processed_dataset))[:sample_size]
+        indices = np.random.permutation(len(dataset))[:sample_size]
 
-    sampled_dataset = processed_dataset.select(index)
-
-    return sampled_dataset
+    return dataset.select(indices)
 
 
 def encode_data(raw_datasets, tokenizer, max_seq_length, processing_num_workers=10, overwrite_cache=False, func_name="encode_with_messages_format"):
