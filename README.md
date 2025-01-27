@@ -82,9 +82,9 @@ Ideally, you would aim to create a datastore that encompasses a gradient of all 
 Below is an example script:
 
 ```bash
-CKPT=3
-TRAINING_DATA_NAME=less_code
-TRAINING_DATA_FILE="AI4M/less-code-top-1M"  # Loaded from Hugging Face
+CKPT=289 #Modify accordingly
+TRAINING_DATA_NAME=code_mixed
+TRAINING_DATA_FILE="UDACA/Code-Mixed-Dataset"  # Loaded from Hugging Face
 GRADIENT_TYPE="adam"
 MODEL_PATH=$HOME/out/gemma-2-2b-p0.05-lora-seed3/checkpoint-${CKPT}
 OUTPUT_PATH=$HOME/grads/gemma-2-2b-p0.05-lora-seed3/${TRAINING_DATA_NAME}-ckpt${CKPT}-${GRADIENT_TYPE}
@@ -102,11 +102,11 @@ DIMS="8192"
 
 To select data for a particular downstream task, you need to prepare data for that task using whatever prompt format is relevant for your task. Currently, we have a function to prepare data for `humaneval`, but if you want to select data for a different task, extend the [`less/data_selection/get_validation_dataset.py`](less/data_selection/get_validation_dataset.py) script accordingly.
 
-**Run the following command for each checkpoint** in your folder:
+**Run the following command for each checkpoint**:
 
 ```bash
-CKPT=105
-TASK=tydiqa
+CKPT=289 #Modify accordingly
+TASK=humaneval
 MODEL_PATH=../out/llama2-7b-p0.05-lora-seed3/checkpoint-${CKPT}
 OUTPUT_PATH=../grads/llama2-7b-p0.05-lora-seed3/${TASK}-ckpt${CKPT}-sgd # for validation data, we always use sgd
 DATA_DIR=../data
