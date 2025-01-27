@@ -9,7 +9,9 @@ def parse_args():
     argparser = argparse.ArgumentParser(
         description='Script for selecting the data for training')
     argparser.add_argument('--train_file_names', type=str,
-                           nargs='+', help='The names of the training datasets on HF')
+                           nargs='+', help='The name of the training dataset you used in your output path')
+    argparser.add_argument('--training_data_file', type=str,
+                           nargs='+', help='The name of the training dataset on HF')
     argparser.add_argument('--target_task_names', type=str,
                            nargs='+', help='The name of the target task')
     argparser.add_argument('--output_path', type=str,
@@ -23,21 +25,34 @@ def parse_args():
 
     return args
 
+def load_hf_datasets(dataset_names, split="train"):
+    datasets = []
+    for dataset_name in dataset_names:
+        try:
+            # Attempt to load the dataset without schema enforcement
+            dataset = load_dataset(dataset_name, split=split)
+        except Exception as e:
+            print(f"Failed to load dataset '{dataset_name}' normally. Attempting schema enforcement. Error: {e}")
+            
+            # Example of dataset-specific schema enforcement (adjust this as needed)
+            if dataset_name == "UDACA/Code-Mixed-Dataset":
+                features = Features({
+                    "text": Value("string"),
+                    "source": Value("string")
+                })
+                dataset = load_dataset(dataset_name, split=split, features=features)
+            else:
+                raise ValueError(f"Could not load dataset '{dataset_name}'. Additional schema enforcement may be needed.")
+        datasets.append(dataset)
+    return datasets
+
 
 if __name__ == "__main__":
     args = parse_args()
     assert args.percentage is not None or args.max_samples is not None
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    features = Features({
-        "text": Value("string"),
-        "source": Value("string")
-    })
-
-    # Load datasets from Hugging Face
-    train_datasets = []
-    dataset = load_dataset("UDACA/Code-Mixed-Dataset", split="train", features=features)
-    train_datasets.append(dataset)
+    
+    train_datasets = load_hf_datasets(args.training_data_file)
 
     for target_task in args.target_task_names:
         output_path = os.path.join(args.output_path, target_task)

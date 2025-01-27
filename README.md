@@ -151,9 +151,15 @@ SELECTED_DATA_OUTPUT_PATH="$HOME/selected_data"
 The influence score for each training data point will be saved in the `OUTPUT_PATH` directory. You can use the following script to select the top-k data points with the highest influence score:
 
 ```bash
+TRAIN_FILE_NAMES="code_mixed" # Name used in your output folder
+TRAINING_DATA_FILE="UDACA/Code-Mixed-Dataset"  # Loaded from Hugging Face
+TARGET_TASK_NAMES="humaneval"
+SELECTED_DATA_OUTPUT_PATH="$HOME/selected_data"
+
 python3 -m less.data_selection.write_selected_data \
   --target_task_names ${TARGET_TASK_NAMES} \
   --train_file_names ${TRAIN_FILE_NAMES} \
+  --trainining_data_file ${TRAINING_DATA_FILE}
   --output_path $SELECTED_DATA_OUTPUT_PATH \
   --percentage 0.05  # Percentage of data points to select
 ```
