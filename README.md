@@ -43,15 +43,33 @@ We follow the [open-instruct](https://github.com/allenai/open-instruct?tab=readm
 ### Step 1: Warmup training
 To enhance downstream performance from data selection, it's crucial to start with a warmup training step. This involves selecting a small portion of your entire dataset to train using the LoRA method. Follow these steps for effective warmup training:
 
-```bash 
-DATA_DIR=../data
-MODEL_PATH=meta-llama/Llama-2-7b-hf
-PERCENTAGE=0.05 # percentage of the full data to train, you can specify the training file you want to use in the script
-DATA_SEED=3
-JOB_NAME=llama2-7b-p${PERCENTAGE}-lora-seed${DATA_SEED}
+### Step 1: Warmup Training
 
-./less/scripts/train/warmup_lora_train.sh "$DATA_DIR" "$MODEL_PATH" "$PERCENTAGE" "$DATA_SEED" "$JOB_NAME"
-```
+To enhance downstream performance from data selection, **it’s crucial to start with a warmup training step**. This involves selecting a small portion of your entire dataset to train using the LoRA method. Follow these steps for effective warmup training:
+
+1. **Adjust Script Arguments**:  
+   - Update `DATA_DIR`, `MODEL_PATH`, and other parameters in the command below to point to your data and model.  
+   - Specify the `TRAIN_DATASET` variable if you want to use a custom dataset.  
+   - The code currently loads a dataset from HuggingFace. It expects the dataset to have a 'text' column. If you load data from a local source or a different platform, you’ll need to modify the function `load_raw_dataset` in `less/data_selection/get_training_dataset.py`.
+
+2. **Example Warmup Training Command**:
+
+   ```bash
+   DATA_DIR=../data
+   MODEL_PATH=google/gemma-2-2b
+   PERCENTAGE=0.05           # Percentage of the full data to train
+   DATA_SEED=3               # Random seed for data sampling
+   JOB_NAME=gemma-2-2b-p${PERCENTAGE}-lora-seed${DATA_SEED}
+   TRAIN_DATASET=UDACA/Code-Mixed-Dataset
+
+   ./less/scripts/train/warmup_lora_train.sh \
+       "$DATA_DIR" \
+       "$MODEL_PATH" \
+       "$PERCENTAGE" \
+       "$DATA_SEED" \
+       "$JOB_NAME" \
+       "$TRAIN_DATASET"
+
 
 ### Step 2: Building the gradient datastore
 Once the initial warmup training stage is completed, we will collect gradients for the entire training dataset. For each checkpoint, our goal is to obtain the gradients of all the training data that we would like to select from. An example script is shown below.
