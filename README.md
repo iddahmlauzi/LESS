@@ -50,7 +50,8 @@ To enhance downstream performance from data selection, **it’s crucial to start
 1. **Adjust Script Arguments**:  
    - Update `DATA_DIR`, `MODEL_PATH`, and other parameters in the command below to point to your data and model.  
    - Specify the `TRAIN_DATASET` variable if you want to use a custom dataset.  
-   - The code currently loads a dataset from HuggingFace. It expects the dataset to have a 'text' column. If you load data from a local source or a different platform, you’ll need to modify the function `load_raw_dataset` in `less/data_selection/get_training_dataset.py`.
+   - The code currently loads a dataset from HuggingFace. It expects the dataset to have a 'text' column. If you load data from a local source or a different platform, you’ll need to modify the function `load_raw_dataset` in [`less/data_selection/get_training_dataset.py`](less/data_selection/get_training_dataset.py).
+   - See `less/scripts/train/warmup_lora_train.sh` for the models currently supported. To add a model, at it [`warmup_lora_train.sh`](less/scripts/train/warmup_lora_train.sh) as well as [`less/train/training_arguments.py`](less/train/training_arguments.py). All package versions in the current `requirements.txt` file were set to work with gemma-2 so they may not be compatible with other models. 
 
 2. **Example Warmup Training Command**:
 
@@ -71,28 +72,39 @@ To enhance downstream performance from data selection, **it’s crucial to start
        "$TRAIN_DATASET"
 
 
-### Step 2: Building the gradient datastore
-Once the initial warmup training stage is completed, we will collect gradients for the entire training dataset. For each checkpoint, our goal is to obtain the gradients of all the training data that we would like to select from. An example script is shown below.
+
+### Step 2: Building the Gradient Datastore
+
+Once the initial warmup training stage (Step 1) is completed, we will collect gradients for the entire training dataset. For each checkpoint, our goal is to obtain the gradients of all the training data that we would like to select from. 
+
+Ideally, you would aim to create a datastore that encompasses a gradient of all the checkpoints and training data from which you wish to choose. The results from **Step 1** are saved in a folder named `"$HOME/out/{JOB_NAME}"`. In that folder, you will find multiple checkpoints. **You should run the gradient collection script once for each checkpoint** you plan to include in your datastore. The gradients collected for each checkpoint will be stored in the `"$HOME/grads"` directory (or whichever path you specify).
+
+Below is an example script:
 
 ```bash
-CKPT=105
-
-TRAINING_DATA_NAME=dolly
-TRAINING_DATA_FILE=../data/train/processed/dolly/dolly_data.jsonl # when changing data name, change the data path accordingly
+CKPT=3
+TRAINING_DATA_NAME=less_code
+TRAINING_DATA_FILE="AI4M/less-code-top-1M"  # Loaded from Hugging Face
 GRADIENT_TYPE="adam"
-MODEL_PATH=../out/llama2-7b-p0.05-lora-seed3/checkpoint-${CKPT}
-OUTPUT_PATH=../grads/llama2-7b-p0.05-lora-seed3/${TRAINING_DATA_NAME}-ckpt${CKPT}-${GRADIENT_TYPE}
+MODEL_PATH=$HOME/out/gemma-2-2b-p0.05-lora-seed3/checkpoint-${CKPT}
+OUTPUT_PATH=$HOME/grads/gemma-2-2b-p0.05-lora-seed3/${TRAINING_DATA_NAME}-ckpt${CKPT}-${GRADIENT_TYPE}
 DIMS="8192"
 
-./less/scripts/get_info/get_train_lora_grads.sh "$TRAINING_DATA_FILE" "$MODEL_PATH" "$OUTPUT_PATH" "$DIMS" "$GRADIENT_TYPE"
+./less/scripts/get_info/grad/get_train_lora_grads.sh \
+    "$TRAINING_DATA_FILE" \
+    "$MODEL_PATH" \
+    "$OUTPUT_PATH" \
+    "$DIMS" \
+    "$GRADIENT_TYPE"
 ```
-Ideally, you would aim to create a datastore that encompasses a gradient of all the checkpoints and training data from which you wish to choose. 
 
-### Step 3: Selecting data for a task
-To select data for a particular downstream task, it's necessary to first prepare data specific to that task, using the same instruction-tuning prompt format as was employed during training. We have set up data loading modules for three evaluation datasets featured in our work: BBH, TydiQA, and MMLU. If you're interested in data selection for additional tasks, you can expand the [`less/data_selection/get_validation_dataset.py`](less/data_selection/get_validation_dataset.py) script to accommodate those tasks. Similar to obtaining gradients for training data, run the following script. The primary difference is that this process will yield SGD gradients for the validation data, following the formulation of the influence estimation. 
+### Step 3: Selecting Data for a Task
+
+To select data for a particular downstream task, you need to prepare data for that task using whatever prompt format is relevant for your task. Currently, we have a function to prepare data for `humaneval`, but if you want to select data for a different task, extend the [`less/data_selection/get_validation_dataset.py`](less/data_selection/get_validation_dataset.py) script accordingly.
+
+**Run the following command for each checkpoint** in your folder:
 
 ```bash
-
 CKPT=105
 TASK=tydiqa
 MODEL_PATH=../out/llama2-7b-p0.05-lora-seed3/checkpoint-${CKPT}
@@ -100,7 +112,7 @@ OUTPUT_PATH=../grads/llama2-7b-p0.05-lora-seed3/${TASK}-ckpt${CKPT}-sgd # for va
 DATA_DIR=../data
 DIMS="4096 8192" # We use 8192 as our default projection dimension 
 
-./less/scripts/get_info/get_eval_lora_grads.sh "$TASK" "$DATA_DIR" "$MODEL_PATH" $OUTPUT_PATH "$DIMS"
+./less/scripts/get_info/get_eval_lora_grads.sh "$TASK" "$DATA_DIR" "$MODEL_PATH" "$OUTPUT_PATH" "$DIMS"
 ```
 You should gain the gradients of the validation data for all the checkpoints you used for building the gradient datastore in the previous step. After obtaining the gradients for the validation data, we can then select data for the task. The following script will calculate the influence score for each training data point, and select the top-k data points with the highest influence score.
 
