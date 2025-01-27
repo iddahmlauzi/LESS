@@ -148,25 +148,30 @@ SELECTED_DATA_OUTPUT_PATH="$HOME/selected_data"
 >   `out/{JOB_NAME}/checkpoint-{CKPT}/trainer_state.json`.  
 >   Within this file, locate the step that corresponds to the checkpoint number. You will see the learning rate listed there.  
 
-The influence score for each training data point will be saved in the `OUTPUT_PATH` directory. You can use the following script to select the top-k data points with the highest influence score. 
+The influence score for each training data point will be saved in the `OUTPUT_PATH` directory. You can use the following script to select the top-k data points with the highest influence score:
 
 ```bash
 python3 -m less.data_selection.write_selected_data \
---target_task_names ${TARGET_TASK_NAMES} \
---train_file_names ${TRAIN_FILE_NAMES} \
---output_path $SELECTED_DATA_OUTPUT_PATH \
---percentage 0.05
+  --target_task_names ${TARGET_TASK_NAMES} \
+  --train_file_names ${TRAIN_FILE_NAMES} \
+  --output_path $SELECTED_DATA_OUTPUT_PATH \
+  --percentage 0.05  # Percentage of data points to select
 ```
+
+> **Note**  
+> This script will output a `sorted.csv` file and a `top-{percentage}.jsonl` file in the selected data output folder.  
+> These files contain the top-k data points ranked by influence score.
+
 
 ### Step 4: Train with your selected data
 After selecting the data, you can use the following script to train the model with the selected data. 
 
 ```bash 
-TARGET_TASK_NAME="tydiqa"
+TARGET_TASK_NAME="humaneval"
 PERCENTAGE=0.05
 TRAIN_FILES=../selected_data/${TARGET_TASK_NAME}/top_p${PERCENTAGE}.jsonl
-MODEL_PATH=meta-llama/Llama-2-7b-hf
-JOB_NAME=llama2-7b-less-p${PERCENTAGE}-lora
+MODEL_PATH=google/gemma-2-2b
+JOB_NAME=gemma-2-2b-less-p${PERCENTAGE}-lora
 
 ./less/scripts/train/lora_train.sh "$TRAIN_FILES" "$MODEL_PATH" "$JOB_NAME" 
 ```
