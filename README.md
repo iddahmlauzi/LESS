@@ -107,28 +107,47 @@ To select data for a particular downstream task, you need to prepare data for th
 ```bash
 CKPT=289 #Modify accordingly
 TASK=humaneval
-MODEL_PATH=../out/llama2-7b-p0.05-lora-seed3/checkpoint-${CKPT}
-OUTPUT_PATH=../grads/llama2-7b-p0.05-lora-seed3/${TASK}-ckpt${CKPT}-sgd # for validation data, we always use sgd
+MODEL_PATH=$HOME/out/gemma-2-2b-p0.05-lora-seed3/checkpoint-${CKPT}
+OUTPUT_PATH=$HOME/grads/gemma-2-2b-p0.05-lora-seed3/${TASK}-ckpt${CKPT}-sgd # for validation data, we always use sgd
 DATA_DIR=../data
 DIMS="4096 8192" # We use 8192 as our default projection dimension 
 
-./less/scripts/get_info/get_eval_lora_grads.sh "$TASK" "$DATA_DIR" "$MODEL_PATH" "$OUTPUT_PATH" "$DIMS"
+./less/scripts/get_info/grad/get_eval_lora_grads.sh "$TASK" "$DATA_DIR" "$MODEL_PATH" "$OUTPUT_PATH" "$DIMS"
 ```
-You should gain the gradients of the validation data for all the checkpoints you used for building the gradient datastore in the previous step. After obtaining the gradients for the validation data, we can then select data for the task. The following script will calculate the influence score for each training data point, and select the top-k data points with the highest influence score.
+
+### Selecting the Most Influential Data
+
+You should collect the validation gradients for every checkpoint used in **Step 2**. Once you have the validation gradients, you can calculate the influence score for each training data point and select the top-k points with the highest influence.
+
+Below is an example script to compute influence and select data:
 
 ```bash
-DIM=8192 # decide which dimension to use
-GRADIENT_PATH=../grads/llama2-7b-p0.05-lora-seed3/{}-ckpt{}-adam/dim${DIM}
-TRAIN_FILE_NAMES="flan_v2 cot dolly oasst1"
-CKPTS="105 211 317 420" # checkpoing index
-CHECKPOINT_WEIGHTS="1.6877e-05 1.2859e-05 7.7030e-06 2.5616e-06" # average lr of the epoch
+DIM=8192  # decide which dimension to use
+GRADIENT_PATH=$HOME/grads/gemma-2-2b-p0.05-lora-seed3/{}-ckpt{}-adam/dim${DIM}
+TRAIN_FILE_NAMES="code_mixed"
+CKPTS="289 579 869 1156"  # checkpoint indices; modify accordingly
+CHECKPOINT_WEIGHTS="1.6877e-05 1.2859e-05 7.7030e-06 2.5616e-06"  # average learning rate for each checkpoint
 
-VALIDATION_GRADIENT_PATH=../grads/llama2-7b-p0.05-lora-seed3/{}-ckpt{}-sgd/dim${DIM}
-TARGET_TASK_NAMES="tydiqa"
-SELECTED_DATA_OUTPUT_PATH="../selected_data"
+VALIDATION_GRADIENT_PATH=$HOME/grads/gemma-2-2b-p0.05-lora-seed3/{}-ckpt{}-sgd/dim${DIM}
+TARGET_TASK_NAMES="humaneval"
+SELECTED_DATA_OUTPUT_PATH="$HOME/selected_data"
 
-./less/scripts/data_selection/matching.sh "$GRADIENT_PATH" "$TRAIN_FILE_NAMES" "$CKPTS" "$CHECKPOINT_WEIGHTS" "$VALIDATION_GRADIENT_PATH" "$TARGET_TASK_NAMES" "$SELECTED_DATA_OUTPUT_PATH"
+./less/scripts/data_selection/matching.sh \
+    "$GRADIENT_PATH" \
+    "$TRAIN_FILE_NAMES" \
+    "$CKPTS" \
+    "$CHECKPOINT_WEIGHTS" \
+    "$VALIDATION_GRADIENT_PATH" \
+    "$TARGET_TASK_NAMES" \
+    "$SELECTED_DATA_OUTPUT_PATH"
 ```
+
+> **Note**  
+> - The learning rates for each checkpoint can be found in the file  
+>   `out/{JOB_NAME}/checkpoint-{CKPT}/trainer_state.json`.  
+>   Within this file, locate the step that corresponds to the checkpoint number (e.g., step 6 for checkpoint 6). You will see the learning rate listed there.  
+> - `CHECKPOINT_WEIGHTS` should match the learning rate used during the final steps of each checkpoint’s training.
+
 
 The influence score for each training data point will be saved in the `OUTPUT_PATH` directory. You can use the following script to select the top-k data points with the highest influence score. 
 
