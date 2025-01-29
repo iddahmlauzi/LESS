@@ -97,6 +97,60 @@ def get_humaneval_dataset(data_dir: str,
     # Convert the dictionary to a Hugging Face Dataset object
     return Dataset.from_dict(dataset)
 
+def get_proofnet_lean4_dataset(data_dir: str,
+                               tokenizer: PreTrainedTokenizerBase,
+                               max_length: int,
+                               **kwargs):
+    """
+    Get the proofnet-lean4 dataset (validation split).
+
+    In this task, we transform natural language (informal_prefix)
+    into a formal statement (formal_statement). We ignore the goal column.
+
+    We format each example as:
+      - query: example["informal_prefix"]
+      - completion: example["formal_statement"]
+
+    Args:
+        data_dir (str): The main data directory (unused in this case).
+        tokenizer (PreTrainedTokenizerBase): The tokenizer used to encode the input.
+        max_length (int): The maximum length of the input sequence.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Dataset: A HuggingFace Dataset with input_ids, attention_mask, and labels.
+    """
+
+    # Load the validation split
+    proofnet_dataset = load_dataset("UDACA/proofnet-lean4", split="validation")
+
+    # Prepare a dictionary to hold tokenized data
+    dataset = {"input_ids": [], "attention_mask": [], "labels": []}
+
+    # Tokenize each example
+    for i, example in enumerate(proofnet_dataset):
+        query = example["informal_prefix"]
+        completion = example["formal_statement"]
+
+        # Use your existing tokenize function
+        full_input_ids, labels, attention_mask = tokenize(
+            tokenizer=tokenizer,
+            query=query,
+            completion=completion,
+            max_length=max_length,
+            print_ex=(i == 0)  # Print only the first example for debugging
+        )
+
+        # Append tokenized results
+        dataset["input_ids"].append(full_input_ids)
+        dataset["labels"].append(labels)
+        dataset["attention_mask"].append(attention_mask)
+
+    # Convert to a Hugging Face Dataset
+    return Dataset.from_dict(dataset)
+
+    
+
 
 def get_dataset(task, **kwargs):
     """
@@ -114,6 +168,8 @@ def get_dataset(task, **kwargs):
     
     if task == "humaneval":
         return get_humaneval_dataset(**kwargs)
+    if task == "proofnet-lean4":
+        return get_proofnet_lean4_dataset(**kwargs)
     else:
         raise ValueError("Invalid task name")
 

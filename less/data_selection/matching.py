@@ -23,7 +23,7 @@ argparser.add_argument('--output_path', type=str, default="selected_data",
 
 args = argparser.parse_args()
 
-N_SUBTASKS = {"mmlu": 57, "bbh": 27, "tydiqa": 9, "humaneval": 1}
+N_SUBTASKS = {"mmlu": 57, "bbh": 27, "tydiqa": 9, "humaneval": 1, "proofnet-lean4": 1}
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
